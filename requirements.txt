@@ -98,3 +98,8 @@ tzdata==2024.2
 urllib3==2.2.3
 watchdog==6.0.0
 XlsxWriter==3.2.0
+streamlit
+lxml
+python-docx
+pydantic
+openai
