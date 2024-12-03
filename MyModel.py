@@ -4,10 +4,9 @@ from openai import OpenAI
 import os
 import json
 
-# Access the OpenAI API key
-export OPENAI_API_KEY="your_api_key_here"
 
-api_key = os.getenv("OPENAI_API_KEY")
+
+api_key = "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"
 if not api_key:
     raise ValueError("API key không được cung cấp!")
 
