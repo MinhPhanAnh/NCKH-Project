@@ -6,7 +6,7 @@ import json
 # Access the OpenAI API key
 api_key = 'your_api_key_here'
 
-client = OpenAI(api_key=api_key)
+client = OpenAI('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')
 
 class QuizSample(BaseModel):
     question: str
