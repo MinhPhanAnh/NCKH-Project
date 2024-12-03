@@ -1,12 +1,16 @@
 from pydantic import BaseModel
 from utils import clean_text
+import streamlit as st
 from openai import OpenAI
 import os
 import json
 
+# Access the OpenAI API key
+api_key = st.secrets["general"]["OPENAI_API_KEY"]
 
+# Khởi tạo OpenAI client
+client = OpenAI(api_key=api_key)
 
-api_key = "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"
 if not api_key:
     raise ValueError("API key không được cung cấp!")
 
