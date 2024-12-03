@@ -5,6 +5,8 @@ import os
 import json
 
 # Access the OpenAI API key
+export OPENAI_API_KEY="your_api_key_here"
+
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("API key không được cung cấp!")
