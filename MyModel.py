@@ -6,7 +6,7 @@ import json
 
 
 
-api_key = "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"
+api_key = "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"
 if not api_key:
     raise ValueError("API key không được cung cấp!")
 
