@@ -6,6 +6,7 @@ from docx import Document
 from MyModel import ExtractA, ExtractB, ExtractC, ExtractD
 from utils import chunk_by_token
 
+
 # Lớp CustomDocumentConverter để xử lý file Word
 class CustomDocumentConverter:
     def convert(self, file_path):
@@ -24,6 +25,7 @@ class CustomDocumentConverter:
         except Exception as e:
             raise ValueError(f"Lỗi xử lý file Word: {e}")
 
+
 # Hàm xuất danh sách câu hỏi ra file Word
 def export_to_word(questions, exam_title):
     doc = Document()
@@ -31,24 +33,32 @@ def export_to_word(questions, exam_title):
     for idx, quiz in enumerate(questions, start=1):
         doc.add_heading(f"Câu {idx} ({quiz['level']}):", level=2)
         doc.add_paragraph(quiz["question"])
-        doc.add_paragraph(f"A. {quiz['choices'][0]}")
-        doc.add_paragraph(f"B. {quiz['choices'][1]}")
-        doc.add_paragraph(f"C. {quiz['choices'][2]}")
-        doc.add_paragraph(f"D. {quiz['choices'][3]}")
+        for i, option in enumerate(quiz['choices'], start=65):  # 65 là mã ASCII của 'A'
+            doc.add_paragraph(f"{chr(i)}. {option.strip()}")
         doc.add_paragraph(f"Đáp án đúng: {quiz['answer']}")
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
     doc.save(temp_file.name)
     return temp_file.name
 
+
 # Giao diện Streamlit
 st.set_page_config(page_title="Website Tạo Đề Trắc Nghiệm Tự Động", layout="wide")
-st.title("Website Tạo Đề Trắc Nghiệm Tự Động \U0001F680")
+
+# Tiêu đề với màu sắc và căn giữa
+st.markdown(
+    """
+    <h1 style="text-align: center; color: #0056B3;">
+        Website Tạo Đề Trắc Nghiệm Tự Động 🚀
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
 
 st.subheader("Tiêu đề đề kiểm tra:")
 exam_title = st.text_input("", placeholder="Đề kiểm tra môn Tin học lớp 11")
 
-st.subheader("Tải lên file nội dung (.docx hoặc .pdf):")
-uploaded_file = st.file_uploader("", type=["docx", "pdf"])
+st.subheader("Tải lên file nội dung (.docx):")
+uploaded_file = st.file_uploader("", type=["docx"])
 
 if uploaded_file:
     with st.spinner("Đang xử lý tệp..."):
@@ -99,7 +109,8 @@ if uploaded_file:
                 )
                 question_counts[level] = count
 
-            if st.button("Tạo câu hỏi"):
+            # Nút tạo câu hỏi
+            if st.button("Tạo câu hỏi", key="generate_questions"):
                 if not selected_levels:
                     st.error("Vui lòng chọn ít nhất một mức độ câu hỏi.")
                 elif not exam_title:
@@ -112,14 +123,14 @@ if uploaded_file:
                         result = extractor.run(selected_chunks, question_counts[level])
                         all_results.extend(result["quizes"])
 
-                    st.write("### Câu hỏi đã được trích xuất:")
+                    # Lưu kết quả vào session
+                    st.session_state["quiz_data"] = all_results
+
                     for quiz in all_results:
                         st.write(f"**Câu hỏi ({quiz['level']}):** {quiz['question']}")
                         st.write("**Đáp án:**")
-                        st.write(f"A. {quiz['choices'][0]}")
-                        st.write(f"B. {quiz['choices'][1]}")
-                        st.write(f"C. {quiz['choices'][2]}")
-                        st.write(f"D. {quiz['choices'][3]}")
+                        for i, option in enumerate(quiz['choices'], start=65):  # 65 là ASCII của 'A'
+                            st.write(f"{chr(i)}. {option.strip()}")
                         st.write(f"**Đáp án đúng:** {quiz['answer']}")
 
                     file_path = export_to_word(all_results, exam_title)
@@ -132,3 +143,4 @@ if uploaded_file:
                         )
         except Exception as e:
             st.error(f"Lỗi: {e}")
+
