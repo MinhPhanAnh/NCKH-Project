@@ -1,4 +1,5 @@
-# Định nghĩa các hàm phụ trợ
+import pdfplumber
+
 def clean_text(text):
     """Xử lý văn bản, loại bỏ ký tự không cần thiết."""
     text = text.replace("\n", " ")
@@ -23,3 +24,17 @@ def chunk_by_token(text, max_len=1000):
     if current_chunk:
         chunks.append(" ".join(current_chunk))
     return chunks
+
+def extract_text_from_pdf(file_path):
+    """Trích xuất văn bản từ file PDF."""
+    try:
+        with pdfplumber.open(file_path) as pdf:
+            text = ""
+            for page in pdf.pages:
+                # Sử dụng layout tốt hơn để giữ định dạng
+                page_text = page.extract_text()
+                if page_text:  # Kiểm tra nếu không rỗng
+                    text += page_text + "\n"
+            return clean_text(text)
+    except Exception as e:
+        raise ValueError(f"Lỗi khi xử lý file PDF: {e}")
