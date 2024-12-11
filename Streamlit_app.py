@@ -3,28 +3,31 @@ import tempfile
 from lxml import etree
 import zipfile
 from docx import Document
+from utils_test import chunk_by_token, extract_text_from_pdf
 from MyModel import ExtractA, ExtractB, ExtractC, ExtractD
-from utils import chunk_by_token
 
-
-# Lớp CustomDocumentConverter để xử lý file Word
+# Lớp CustomDocumentConverter để xử lý file Word và PDF
 class CustomDocumentConverter:
-    def convert(self, file_path):
-        try:
-            with zipfile.ZipFile(file_path, 'r') as z:
-                xml_content = z.read('word/document.xml')
-            root = etree.XML(xml_content)
-            namespaces = root.nsmap
-            if "w" not in namespaces:
-                namespaces["w"] = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-            elements = root.xpath(".//w:t", namespaces=namespaces)
-            text = " ".join([el.text for el in elements if el.text])
-            return text
-        except KeyError:
-            raise ValueError("File .docx không hợp lệ hoặc không chứa tài liệu Word!")
-        except Exception as e:
-            raise ValueError(f"Lỗi xử lý file Word: {e}")
-
+    def convert(self, file_path, file_type="docx"):
+        if file_type == "docx":
+            try:
+                with zipfile.ZipFile(file_path, 'r') as z:
+                    xml_content = z.read('word/document.xml')
+                root = etree.XML(xml_content)
+                namespaces = root.nsmap
+                if "w" not in namespaces:
+                    namespaces["w"] = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                elements = root.xpath(".//w:t", namespaces=namespaces)
+                text = " ".join([el.text for el in elements if el.text])
+                return text
+            except KeyError:
+                raise ValueError("File .docx không hợp lệ hoặc không chứa tài liệu Word!")
+            except Exception as e:
+                raise ValueError(f"Lỗi xử lý file Word: {e}")
+        elif file_type == "pdf":
+            return extract_text_from_pdf(file_path)
+        else:
+            raise ValueError("Định dạng file không được hỗ trợ!")
 
 # Hàm xuất danh sách câu hỏi ra file Word
 def export_to_word(questions, exam_title):
@@ -40,11 +43,9 @@ def export_to_word(questions, exam_title):
     doc.save(temp_file.name)
     return temp_file.name
 
-
 # Giao diện Streamlit
 st.set_page_config(page_title="Website Tạo Đề Trắc Nghiệm Tự Động", layout="wide")
 
-# Tiêu đề với màu sắc và căn giữa
 st.markdown(
     """
     <h1 style="text-align: center; color: #0056B3;">
@@ -57,21 +58,22 @@ st.markdown(
 st.subheader("Tiêu đề đề kiểm tra:")
 exam_title = st.text_input("", placeholder="Đề kiểm tra môn Tin học lớp 11")
 
-st.subheader("Tải lên file nội dung (.docx):")
-uploaded_file = st.file_uploader("", type=["docx"])
+st.subheader("Tải lên file nội dung (.docx hoặc .pdf):")
+uploaded_file = st.file_uploader("", type=["docx", "pdf"])
 
 if uploaded_file:
+    file_type = uploaded_file.name.split('.')[-1].lower()
     with st.spinner("Đang xử lý tệp..."):
         try:
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 temp_file.write(uploaded_file.getbuffer())
                 temp_file_path = temp_file.name
+
             converter = CustomDocumentConverter()
-            text = converter.convert(temp_file_path)
+            text = converter.convert(temp_file_path, file_type=file_type)
             chunks = chunk_by_token(text, max_len=1000)
             st.success("File đã được xử lý thành công!")
 
-            # Chọn khoảng chunk để xử lý
             start_chunk, end_chunk = st.slider(
                 "Chọn đoạn để xử lý:",
                 min_value=0,
@@ -80,11 +82,9 @@ if uploaded_file:
             )
             st.write(f"Đang xử lý từ đoạn {start_chunk + 1} đến đoạn {end_chunk + 1}...")
 
-            # Ghép các chunk trong khoảng đã chọn
             selected_chunks = " ".join(chunks[start_chunk:end_chunk + 1])
             st.text_area("Nội dung các đoạn đã chọn:", selected_chunks, height=300)
 
-            # Lựa chọn mức độ câu hỏi
             extraction_levels = {
                 "Nhận biết": ExtractA,
                 "Thông hiểu": ExtractB,
@@ -97,7 +97,6 @@ if uploaded_file:
                 default=[]
             )
 
-            # Lựa chọn số lượng câu hỏi cho từng mức độ
             question_counts = {}
             for level in selected_levels:
                 count = st.number_input(
@@ -109,7 +108,6 @@ if uploaded_file:
                 )
                 question_counts[level] = count
 
-            # Nút tạo câu hỏi
             if st.button("Tạo câu hỏi", key="generate_questions"):
                 if not selected_levels:
                     st.error("Vui lòng chọn ít nhất một mức độ câu hỏi.")
@@ -122,8 +120,14 @@ if uploaded_file:
                         extractor = extractor_class()
                         result = extractor.run(selected_chunks, question_counts[level])
                         all_results.extend(result["quizes"])
+            
+                    # Kiểm tra và làm sạch dữ liệu sau khi đã tạo câu hỏi
+                    for idx, quiz in enumerate(all_results):
+                        if not any(quiz['choices']):  # Kiểm tra nếu danh sách đáp án trống
+                            st.warning(f"Câu hỏi số {idx + 1} bị thiếu đáp án. Kiểm tra lại nội dung file.")
+                            quiz['choices'] = ["Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D"]  # Thêm đáp án mặc định
+                            quiz['answer'] = "Đáp án A"  # Đáp án mặc định
 
-                    # Lưu kết quả vào session
                     st.session_state["quiz_data"] = all_results
 
                     for quiz in all_results:
@@ -143,4 +147,3 @@ if uploaded_file:
                         )
         except Exception as e:
             st.error(f"Lỗi: {e}")
-
