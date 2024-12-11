@@ -3,7 +3,7 @@ import tempfile
 from lxml import etree
 import zipfile
 from docx import Document
-from utils_test import chunk_by_token, extract_text_from_pdf
+from utils import chunk_by_token, extract_text_from_pdf
 from MyModel import ExtractA, ExtractB, ExtractC, ExtractD
 
 # Lớp CustomDocumentConverter để xử lý file Word và PDF
