@@ -42,10 +42,9 @@ Bạn có thể chạy dự án này cục bộ theo các bước sau:
     ```
 
 4.  **Thiết lập API Key:**
-    Tạo tệp `.streamlit/secrets.toml` và thêm API key của bạn:
-    ```toml
-
-5.  **Chạy ứng dụng:**
+    Tạo tệp `.streamlit/secrets.toml` và thêm API key của bạn
+    
+6.  **Chạy ứng dụng:**
     ```bash
     streamlit run app.py
     ```
